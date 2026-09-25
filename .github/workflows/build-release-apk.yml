@@ -1,0 +1,73 @@
+name: Build & Upload Signed OSS Release APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-oss-release:
+    name: Build & Sign OSS Release APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Delete old Android SDK cmdline-tools
+        run: |
+          rm -rf "$ANDROID_HOME/cmdline-tools/latest"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'cmdline-tools;latest platform-tools'
+
+      - name: Accept Android SDK licenses
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release.jks
+
+      - name: Build OSS Release APK
+        run: |
+          ./gradlew :app:assembleOssRelease \
+            -PkeystoreFile="$GITHUB_WORKSPACE/release.jks" \
+            -PkeystorePassword="${{ secrets.KEYSTORE_PASSWORD }}" \
+            -PkeystoreAlias="${{ secrets.KEY_ALIAS }}" \
+            --no-daemon --stacktrace
+
+      - name: Verify Signed APK
+        run: |
+          APK_FILE=$(find app/build/outputs/apk/oss/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "Error: No APK file found in app/build/outputs/apk/oss/release/"
+            exit 1
+          fi
+          echo "Found APK: $APK_FILE"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          echo "Using apksigner at: $APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK_FILE"
+
+      - name: Upload Signed OSS Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ConnectBot-oss-release-signed
+          path: app/build/outputs/apk/oss/release/*.apk
+          if-no-files-found: error

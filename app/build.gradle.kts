@@ -123,7 +123,7 @@ android {
     dynamicFeatures += setOf(":mosh")
 
     defaultConfig {
-        applicationId = "org.connectbot"
+        applicationId = "org.connectbot.custom"
 
         minSdk =
             libs.versions.minSdk

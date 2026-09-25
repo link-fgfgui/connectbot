@@ -1167,7 +1167,7 @@ open class SSH :
             HostConstants.PORTFORWARD_LOCAL -> {
                 val lpf: LocalPortForwarder? = try {
                     connection?.createLocalPortForwarder(
-                        InetSocketAddress(InetAddress.getLocalHost(), portForward.sourcePort),
+                        InetSocketAddress(portForward.sourcePort),
                         portForward.destAddr,
                         portForward.destPort,
                     )

@@ -30,3 +30,8 @@ build/
 
 # Jenkinsfile-runner
 \.jenkinsfile-runner/
+
+# Keystores
+*.jks
+*.keystore
+release.jks

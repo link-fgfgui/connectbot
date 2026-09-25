@@ -19,6 +19,7 @@ concurrency:
 
 jobs:
   ci:
+    if: github.repository == 'connectbot/connectbot'
     name: CI
     uses: ./.github/workflows/ci-build.yml
     permissions:
